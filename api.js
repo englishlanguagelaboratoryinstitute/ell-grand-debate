@@ -41,48 +41,48 @@ const VoteAPI = (() => {
 
     matches: {
       1: {
-        winnerEntry: "entry.906434186_sentinel",
+        winnerEntry: "entry.906434186",
         winnerValues: ["TEAM 1", "TEAM 2"],
-        speakerEntry: "entry.582642887_sentinel",
+        speakerEntry: "entry.582642887",
         speakerValues: [
           "The best speaker of TEAM 1",
           "The best speaker of TEAM 2"
         ]
       },
       2: {
-        winnerEntry: "entry.2099640570_sentinel",
+        winnerEntry: "entry.2099640570",
         winnerValues: ["TEAM 3", "TEAM 4"],
-        speakerEntry: "entry.1646500844_sentinel",
+        speakerEntry: "entry.1646500844",
         speakerValues: [
           "The best speaker of TEAM 3",
-          "The best speaker of TEAM 4"
+          "The best speaker of TEAM  4"
         ]
       },
       3: {
-        winnerEntry: "entry.1767814271_sentinel",
+        winnerEntry: "entry.1767814271",
         winnerValues: ["TEAM 5", "TEAM 6"],
-        speakerEntry: "entry.90920490_sentinel",
+        speakerEntry: "entry.90920490",
         speakerValues: [
           "The best speaker of TEAM 5",
           "The best speaker of TEAM 6"
         ]
       },
       4: {
-        winnerEntry: "entry.1015563530_sentinel",
+        winnerEntry: "entry.1015563530",
         winnerValues: ["TEAM 7", "TEAM 8"],
-        speakerEntry: "entry.40306143_sentinel",
+        speakerEntry: "entry.40306143",
         speakerValues: [
           "The best speaker of TEAM 7",
           "The best speaker of TEAM 8"
         ]
       },
       5: {
-        winnerEntry: "entry.1563472660_sentinel",
+        winnerEntry: "entry.1563472660",
         winnerValues: ["TEAM 9", "TEAM 10"],
-        speakerEntry: "entry.1723104247_sentinel",
+        speakerEntry: "entry.1723104247",
         speakerValues: [
-          "The best speaker of TEAM 9",
-          "The best speaker of TEAM 10"
+          "The best speaker of  TEAM 9",
+          "The best speaker of TEAM  10"
         ]
       }
     },
@@ -90,35 +90,29 @@ const VoteAPI = (() => {
     // ------------------------------------------------------------------
     // GVIZ READ-SIDE CONFIG (Phase 2 — screen.html result polling)
     // ------------------------------------------------------------------
-    // ⚠️ sheetId is a PLACEHOLDER. Every Google Form has its own linked
-    // response Spreadsheet with its OWN id — this is NOT the same as the
-    // form's id in the formResponse URL above and cannot be derived from it.
+    // sheetId confirmed from the linked response Spreadsheet's URL
+    // (https://docs.google.com/spreadsheets/d/<SHEET_ID>/edit...).
     //
-    // To get the real value:
-    //   1. Open the live Form in edit mode → "Responses" tab.
-    //   2. Click the green Sheets icon ("View responses in Sheets").
-    //   3. The Sheet's URL looks like:
-    //      https://docs.google.com/spreadsheets/d/<SHEET_ID>/edit#gid=0
-    //      Copy the <SHEET_ID> portion into gviz.sheetId below.
-    //   4. Confirm the tab name matches gviz.sheetName (Forms defaults to
-    //      "Form Responses 1" — rename here if you renamed the tab).
-    //
-    // columns assumes the form's questions are laid out in the same order
-    // as CONFIG.matches above (Match1 winner, Match1 speaker, Match2
-    // winner, Match2 speaker, ...) with column 0 reserved for the
-    // automatic Timestamp column GViz always adds first. VERIFY this
-    // against row 1 of the real Sheet before relying on it — if any
-    // question was reordered in the Form editor, these indices will be
-    // wrong and screen.html will silently tally the wrong column.
+    // columns were corrected against the Form's actual FB_PUBLIC_LOAD_DATA_
+    // structure dump, which showed the 10 questions are NOT interleaved
+    // (winner, speaker, winner, speaker...) as originally assumed — they're
+    // grouped: all 5 "Best TEAM" winner questions first, then all 5
+    // "Best SPEAKER" questions after. So the real sheet column order is:
+    //   col0 Timestamp, col1-5 = M1-M5 winner, col6-10 = M1-M5 speaker.
+    // STILL VERIFY against row 1 of the live Sheet once real votes start
+    // landing — this dump confirms the Form's question order, but doesn't
+    // by itself prove GViz won't ever reorder columns (it shouldn't, but
+    // a one-time visual check costs nothing and this hazard already bit
+    // us once on the entry-ID side).
     gviz: {
       sheetId: "1ngTh8TDBQgn0rLrCNSEgERTKkMx6BIP-282Jalpzyb0",
       sheetName: "Form Responses 1",
       columns: {
-        1: { winnerCol: 1, speakerCol: 2 },
-        2: { winnerCol: 3, speakerCol: 4 },
-        3: { winnerCol: 5, speakerCol: 6 },
-        4: { winnerCol: 7, speakerCol: 8 },
-        5: { winnerCol: 9, speakerCol: 10 }
+        1: { winnerCol: 1, speakerCol: 6  },
+        2: { winnerCol: 2, speakerCol: 7  },
+        3: { winnerCol: 3, speakerCol: 8  },
+        4: { winnerCol: 4, speakerCol: 9  },
+        5: { winnerCol: 5, speakerCol: 10 }
       }
     },
 
@@ -139,7 +133,7 @@ const VoteAPI = (() => {
     2: { winner: "TEAM 3", speaker: "The best speaker of TEAM 3" },
     3: { winner: "TEAM 5", speaker: "The best speaker of TEAM 5" },
     4: { winner: "TEAM 7", speaker: "The best speaker of TEAM 7" },
-    5: { winner: "TEAM 9", speaker: "The best speaker of TEAM 9" }
+    5: { winner: "TEAM 9", speaker: "The best speaker of  TEAM 9" }
   };
 
   /**
