@@ -111,7 +111,7 @@ const VoteAPI = (() => {
     // question was reordered in the Form editor, these indices will be
     // wrong and screen.html will silently tally the wrong column.
     gviz: {
-      sheetId: "REPLACE_WITH_REAL_SHEET_ID",
+      sheetId: "1ngTh8TDBQgn0rLrCNSEgERTKkMx6BIP-282Jalpzyb0",
       sheetName: "Form Responses 1",
       columns: {
         1: { winnerCol: 1, speakerCol: 2 },
