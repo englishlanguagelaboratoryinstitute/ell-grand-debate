@@ -567,6 +567,13 @@
       if (screens[name]) screens[name].classList.add("active");
     }
 
+    // ── VALIDATION (declared early — populateForMatch below calls
+    //    hideValidation() during initial page load, so this must exist
+    //    before that first call, not after it) ────────────────────────
+    const validationMsg = document.getElementById("validation-msg");
+    function showValidation(msg) { validationMsg.textContent = msg; validationMsg.classList.add("visible"); }
+    function hideValidation()    { validationMsg.classList.remove("visible"); }
+
     // ── POPULATE UI FOR A GIVEN MATCH ─────────────────────────
     function populateForMatch(matchNum) {
       const cfg = VoteAPI.getMatchConfig(matchNum);
@@ -659,11 +666,6 @@
     bindOption("opt-winner-b",  () => document.getElementById("text-winner-b").textContent,  v => selectedWinner  = v);
     bindOption("opt-speaker-a", () => document.getElementById("text-speaker-a").textContent, v => selectedSpeaker = v);
     bindOption("opt-speaker-b", () => document.getElementById("text-speaker-b").textContent, v => selectedSpeaker = v);
-
-    // ── VALIDATION ────────────────────────────────────────────
-    const validationMsg = document.getElementById("validation-msg");
-    function showValidation(msg) { validationMsg.textContent = msg; validationMsg.classList.add("visible"); }
-    function hideValidation()    { validationMsg.classList.remove("visible"); }
 
     // ── SUBMIT ────────────────────────────────────────────────
     const btnSubmit  = document.getElementById("btn-submit");
