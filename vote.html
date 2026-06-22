@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0c14" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>ELL Grand Debate — Vote</title>
+
+  <style>
+    :root {
+      --bg:           #0a0c14;
+      --surface:      #111420;
+      --surface-hi:   #181c2c;
+      --border:       #1e2236;
+      --border-hi:    #2d3454;
+      --gold:         #f5c842;
+      --gold-dim:     #a88a1e;
+      --gold-glow:    rgba(245,200,66,0.18);
+      --teal:         #2dd4bf;
+      --teal-dim:     #1a8a7a;
+      --teal-glow:    rgba(45,212,191,0.15);
+      --text:         #e8eaf0;
+      --text-muted:   #6b7280;
+      --danger:       #ef4444;
+      --radius-card:  16px;
+      --radius-btn:   12px;
+      --font-display: 'Kanit', sans-serif;
+      --font-body:    'Mulish', sans-serif;
+    }
+
+    @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;900&family=Mulish:wght@400;600;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { background: var(--bg); -webkit-tap-highlight-color: transparent; }
+
+    body {
+      min-height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: env(safe-area-inset-top,0) env(safe-area-inset-right,0)
+               env(safe-area-inset-bottom,0) env(safe-area-inset-left,0);
+    }
+
+    .screen {
+      display: none;
+      width: 100%;
+      max-width: 480px;
+      min-height: 100dvh;
+      flex-direction: column;
+      padding: 28px 20px 48px;
+    }
+    .screen.active { display: flex; }
+
+    /* ── EYEBROW ───────────────────────────────────────────── */
+    .eyebrow {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 28px;
+    }
+    .eyebrow-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--gold); flex-shrink: 0;
+    }
+    .eyebrow-text {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    /* ── MATCH SWITCHER (preview/dev only) ─────────────────── */
+    #dev-switcher {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .dev-tab {
+      padding: 6px 14px; border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface); color: var(--text-muted);
+      font-family: var(--font-display); font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .dev-tab:hover { border-color: var(--gold-dim); color: var(--gold); }
+    .dev-tab.active { background: var(--gold); border-color: var(--gold); color: var(--bg); }
+    .dev-label {
+      font-size: 10px; color: var(--text-muted);
+      letter-spacing: 0.1em; text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    /* ── VOTE FORM HEADER ──────────────────────────────────── */
+    #vote-header { margin-bottom: 28px; }
+    #vote-match-label {
+      font-family: var(--font-display); font-size: 13px; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 6px;
+    }
+    #vote-headline {
+      font-family: var(--font-display); font-size: 34px; font-weight: 900;
+      line-height: 1.05; color: var(--text);
+    }
+    #vote-vs {
+      font-family: var(--font-display); font-size: 15px; font-weight: 400;
+      color: var(--text-muted); margin-top: 6px;
+    }
+
+    /* ── QUESTION CARDS ────────────────────────────────────── */
+    .question-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-card); padding: 20px; margin-bottom: 16px;
+    }
+    .question-label {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 14px;
+    }
+
+    /* ── RADIO OPTIONS ─────────────────────────────────────── */
+    .radio-option {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px; border-radius: 10px;
+      border: 1.5px solid var(--border);
+      background: var(--surface-hi);
+      cursor: pointer; transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+      margin-bottom: 10px; position: relative;
+      -webkit-user-select: none; user-select: none;
+    }
+    .radio-option:last-child { margin-bottom: 0; }
+    .radio-option:active { transform: scale(0.985); }
+
+    .radio-option input[type="radio"] {
+      position: absolute; opacity: 0; width: 0; height: 0;
+    }
+    .radio-ring {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 2px solid var(--border-hi); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color 0.18s;
+    }
+    .radio-ring::after {
+      content: ''; width: 10px; height: 10px; border-radius: 50%;
+      background: var(--gold); opacity: 0; transform: scale(0.5);
+      transition: opacity 0.18s, transform 0.18s;
+    }
+    .radio-option-text {
+      font-family: var(--font-display); font-size: 17px; font-weight: 700;
+      color: var(--text); transition: color 0.18s;
+    }
+
+    /* Winner selected — gold */
+    .radio-option.selected {
+      border-color: var(--gold); background: var(--gold-glow);
+      box-shadow: 0 0 0 1px var(--gold-dim) inset;
+    }
+    .radio-option.selected .radio-ring { border-color: var(--gold); }
+    .radio-option.selected .radio-ring::after { opacity: 1; transform: scale(1); }
+    .radio-option.selected .radio-option-text { color: var(--gold); }
+
+    /* Speaker selected — teal */
+    .question-card.speaker .radio-option.selected {
+      border-color: var(--teal); background: var(--teal-glow);
+      box-shadow: 0 0 0 1px var(--teal-dim) inset;
+    }
+    .question-card.speaker .radio-option.selected .radio-ring { border-color: var(--teal); }
+    .question-card.speaker .radio-option.selected .radio-ring::after {
+      background: var(--teal); opacity: 1; transform: scale(1);
+    }
+    .question-card.speaker .radio-option.selected .radio-option-text { color: var(--teal); }
+
+    /* ── SUBMIT ────────────────────────────────────────────── */
+    #submit-area { margin-top: 8px; }
+    #validation-msg {
+      font-size: 13px; color: var(--danger); text-align: center;
+      min-height: 20px; margin-bottom: 12px;
+      opacity: 0; transition: opacity 0.2s;
+    }
+    #validation-msg.visible { opacity: 1; }
+    #btn-submit {
+      width: 100%; padding: 18px; border-radius: var(--radius-btn);
+      border: none; background: var(--gold); color: var(--bg);
+      font-family: var(--font-display); font-size: 18px; font-weight: 700;
+      letter-spacing: 0.05em; cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    #btn-submit:hover  { opacity: 0.92; }
+    #btn-submit:active { transform: scale(0.97); }
+    #btn-submit:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+    .btn-spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(10,12,20,0.3); border-top-color: var(--bg);
+      border-radius: 50%; animation: spin 0.7s linear infinite; display: none;
+    }
+    .btn-spinner.visible { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── ALREADY-VOTED SCREEN ──────────────────────────────── */
+    #screen-voted {
+      align-items: center; justify-content: center; text-align: center; gap: 0;
+    }
+    #voted-icon {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: rgba(245,200,66,0.12); border: 2px solid var(--gold-dim);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px; margin: 0 auto 24px;
+    }
+    #voted-headline {
+      font-family: var(--font-display); font-size: 28px; font-weight: 900;
+      color: var(--text); margin-bottom: 10px;
+    }
+    #voted-sub {
+      font-size: 14px; color: var(--text-muted);
+      line-height: 1.6; max-width: 280px; margin: 0 auto;
+    }
+
+    /* ── SUCCESS SCREEN ────────────────────────────────────── */
+    #screen-success {
+      align-items: center; justify-content: center; text-align: center; gap: 0;
+    }
+    #check-wrap { width: 88px; height: 88px; margin: 0 auto 28px; position: relative; }
+    .check-ring {
+      width: 88px; height: 88px; border-radius: 50%;
+      border: 3px solid var(--gold); position: absolute; top: 0; left: 0;
+      opacity: 0; transform: scale(0.7);
+      animation: ring-pop 0.45s ease-out 0.1s forwards;
+    }
+    @keyframes ring-pop { to { opacity: 1; transform: scale(1); } }
+    .check-svg {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .check-path {
+      stroke: var(--gold); stroke-width: 3;
+      stroke-linecap: round; stroke-linejoin: round; fill: none;
+      stroke-dasharray: 40; stroke-dashoffset: 40;
+      animation: draw-check 0.4s ease-out 0.45s forwards;
+    }
+    @keyframes draw-check { to { stroke-dashoffset: 0; } }
+    #success-headline {
+      font-family: var(--font-display); font-size: 30px; font-weight: 900;
+      color: var(--text); margin-bottom: 10px;
+      opacity: 0; transform: translateY(10px);
+      animation: fade-up 0.4s ease-out 0.7s forwards;
+    }
+    #success-sub {
+      font-size: 14px; color: var(--text-muted); line-height: 1.6;
+      max-width: 290px; margin: 0 auto 32px;
+      opacity: 0; transform: translateY(8px);
+      animation: fade-up 0.4s ease-out 0.85s forwards;
+    }
+    #success-recap {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px 20px;
+      width: 100%; max-width: 320px; text-align: left;
+      opacity: 0; animation: fade-up 0.4s ease-out 1s forwards;
+    }
+    .recap-row {
+      display: flex; flex-direction: column; gap: 2px;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .recap-row:last-child { border-bottom: none; }
+    .recap-label {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted);
+    }
+    .recap-value {
+      font-family: var(--font-display); font-size: 15px; font-weight: 700;
+      color: var(--gold);
+    }
+    .recap-value.teal { color: var(--teal); }
+    @keyframes fade-up { to { opacity: 1; transform: translateY(0); } }
+
+    /* ── ERROR SCREEN ──────────────────────────────────────── */
+    #screen-error {
+      align-items: center; justify-content: center; text-align: center; gap: 0;
+    }
+    #error-icon { font-size: 48px; margin-bottom: 20px; }
+    #error-headline {
+      font-family: var(--font-display); font-size: 26px; font-weight: 900;
+      color: var(--text); margin-bottom: 10px;
+    }
+    #error-detail {
+      font-size: 13px; color: var(--text-muted);
+      line-height: 1.6; margin-bottom: 28px; max-width: 280px;
+    }
+    .btn-ghost {
+      padding: 14px 28px; border-radius: var(--radius-btn);
+      border: 1.5px solid var(--border-hi); background: transparent;
+      color: var(--text); font-family: var(--font-body);
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+  </style>
+</head>
+<body>
+
+  <!-- SCREEN: VOTE FORM -->
+  <div class="screen" id="screen-vote">
+    <div class="eyebrow">
+      <div class="eyebrow-dot"></div>
+      <span class="eyebrow-text">ELL Grand Debate · Audience Vote</span>
+    </div>
+
+    <!-- DEV MATCH SWITCHER (shown when no ?match= in URL) -->
+    <div id="dev-switcher" style="display:none">
+      <div class="dev-label">Preview match:</div>
+      <div style="display:flex;gap:6px">
+        <button class="dev-tab active" data-m="1">1</button>
+        <button class="dev-tab"        data-m="2">2</button>
+        <button class="dev-tab"        data-m="3">3</button>
+        <button class="dev-tab"        data-m="4">4</button>
+        <button class="dev-tab"        data-m="5">5</button>
+      </div>
+    </div>
+
+    <div id="vote-header">
+      <div id="vote-match-label">Match 1</div>
+      <h1 id="vote-headline">Who won<br>this round?</h1>
+      <p id="vote-vs">TEAM 1 vs TEAM 2</p>
+    </div>
+
+    <div class="question-card winner" id="card-winner">
+      <div class="question-label">🏆 Winning Team</div>
+      <label class="radio-option" id="opt-winner-a" tabindex="0" role="radio" aria-checked="false">
+        <input type="radio" name="winner" id="radio-winner-a" />
+        <span class="radio-ring"></span>
+        <span class="radio-option-text" id="text-winner-a">TEAM 1</span>
+      </label>
+      <label class="radio-option" id="opt-winner-b" tabindex="0" role="radio" aria-checked="false">
+        <input type="radio" name="winner" id="radio-winner-b" />
+        <span class="radio-ring"></span>
+        <span class="radio-option-text" id="text-winner-b">TEAM 2</span>
+      </label>
+    </div>
+
+    <div class="question-card speaker" id="card-speaker">
+      <div class="question-label">🎙 Best Speaker</div>
+      <label class="radio-option" id="opt-speaker-a" tabindex="0" role="radio" aria-checked="false">
+        <input type="radio" name="speaker" id="radio-speaker-a" />
+        <span class="radio-ring"></span>
+        <span class="radio-option-text" id="text-speaker-a">The best speaker of TEAM 1</span>
+      </label>
+      <label class="radio-option" id="opt-speaker-b" tabindex="0" role="radio" aria-checked="false">
+        <input type="radio" name="speaker" id="radio-speaker-b" />
+        <span class="radio-ring"></span>
+        <span class="radio-option-text" id="text-speaker-b">The best speaker of TEAM 2</span>
+      </label>
+    </div>
+
+    <div id="submit-area">
+      <div id="validation-msg">Please choose both a winning team and a best speaker.</div>
+      <button id="btn-submit">
+        <span id="btn-label">Cast My Vote</span>
+        <span class="btn-spinner" id="btn-spinner"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- SCREEN: ALREADY VOTED -->
+  <div class="screen" id="screen-voted">
+    <div id="voted-icon">🗳️</div>
+    <h2 id="voted-headline">Already voted!</h2>
+    <p id="voted-sub">You've already cast your vote for this match.<br>One vote per device is allowed.</p>
+  </div>
+
+  <!-- SCREEN: SUCCESS -->
+  <div class="screen" id="screen-success">
+    <div id="check-wrap">
+      <div class="check-ring"></div>
+      <svg class="check-svg" width="36" height="36" viewBox="0 0 36 36">
+        <polyline class="check-path" points="7,19 14,26 29,11" />
+      </svg>
+    </div>
+    <h2 id="success-headline">Vote received!</h2>
+    <p id="success-sub">Your vote has been submitted.<br>Results are live on the main screen.</p>
+    <div id="success-recap">
+      <div class="recap-row">
+        <span class="recap-label">Winning team</span>
+        <span class="recap-value" id="recap-winner">—</span>
+      </div>
+      <div class="recap-row">
+        <span class="recap-label">Best speaker</span>
+        <span class="recap-value teal" id="recap-speaker">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN: ERROR -->
+  <div class="screen" id="screen-error">
+    <div id="error-icon">⚠️</div>
+    <h2 id="error-headline">Invalid link</h2>
+    <p id="error-detail">This voting link doesn't point to a valid match.<br>Please scan the correct QR code from the main screen.</p>
+    <button class="btn-ghost" onclick="window.location.reload()">Try again</button>
+  </div>
+
+  <script>
+  // ═══════════════════════════════════════════════════════════
+  // INLINED api.js — VoteAPI data layer
+  // (Identical to the standalone api.js; inlined so vote.html
+  //  works as a self-contained file when previewed or opened
+  //  directly. The GitHub Pages deploy still loads api.js
+  //  separately via <script src="api.js"> in production;
+  //  this guard prevents double-declaration.)
+  // ═══════════════════════════════════════════════════════════
+  if (typeof VoteAPI === "undefined") {
+  "use strict";
+
+  const VoteAPI = (() => {
+    const CONFIG = {
+      endpoint:
+        "https://docs.google.com/forms/d/e/1FAIpQLSeyiQBjAGY6fyXZ7x2PYK3NEgI5C1lP7CM74HlpdLLxI3nyrQ/formResponse",
+      hiddenFields: {
+        fvv: "1", pageHistory: "0",
+        fbzx: "-6044623654662765961",
+        submissionTimestamp: "-1",
+        partialResponse: '[null,null,"-6044623654662765961"]'
+      },
+      matches: {
+        1: { winnerEntry: "entry.906434186_sentinel",   winnerValues: ["TEAM 1","TEAM 2"],   speakerEntry: "entry.582642887_sentinel",   speakerValues: ["The best speaker of TEAM 1","The best speaker of TEAM 2"] },
+        2: { winnerEntry: "entry.2099640570_sentinel",  winnerValues: ["TEAM 3","TEAM 4"],   speakerEntry: "entry.1646500844_sentinel",  speakerValues: ["The best speaker of TEAM 3","The best speaker of TEAM 4"] },
+        3: { winnerEntry: "entry.1767814271_sentinel",  winnerValues: ["TEAM 5","TEAM 6"],   speakerEntry: "entry.90920490_sentinel",    speakerValues: ["The best speaker of TEAM 5","The best speaker of TEAM 6"] },
+        4: { winnerEntry: "entry.1015563530_sentinel",  winnerValues: ["TEAM 7","TEAM 8"],   speakerEntry: "entry.40306143_sentinel",    speakerValues: ["The best speaker of TEAM 7","The best speaker of TEAM 8"] },
+        5: { winnerEntry: "entry.1563472660_sentinel",  winnerValues: ["TEAM 9","TEAM 10"],  speakerEntry: "entry.1723104247_sentinel",  speakerValues: ["The best speaker of TEAM 9","The best speaker of TEAM 10"] }
+      },
+      gviz: {
+        sheetId: "REPLACE_WITH_REAL_SHEET_ID",
+        sheetName: "Form Responses 1",
+        columns: {
+          1: { winnerCol:1,  speakerCol:2  },
+          2: { winnerCol:3,  speakerCol:4  },
+          3: { winnerCol:5,  speakerCol:6  },
+          4: { winnerCol:7,  speakerCol:8  },
+          5: { winnerCol:9,  speakerCol:10 }
+        }
+      },
+      padUnvotedMatches: false
+    };
+
+    const FALLBACK = {
+      1:{ winner:"TEAM 1", speaker:"The best speaker of TEAM 1" },
+      2:{ winner:"TEAM 3", speaker:"The best speaker of TEAM 3" },
+      3:{ winner:"TEAM 5", speaker:"The best speaker of TEAM 5" },
+      4:{ winner:"TEAM 7", speaker:"The best speaker of TEAM 7" },
+      5:{ winner:"TEAM 9", speaker:"The best speaker of TEAM 9" }
+    };
+
+    function verifyConfig() {
+      const problems = [];
+      for (const [num,m] of Object.entries(CONFIG.matches)) {
+        if (m.winnerEntry.includes("_sentinel"))  problems.push(`Match ${num} winnerEntry is unverified.`);
+        if (m.speakerEntry.includes("_sentinel")) problems.push(`Match ${num} speakerEntry is unverified.`);
+      }
+      if (CONFIG.gviz.sheetId === "REPLACE_WITH_REAL_SHEET_ID")
+        problems.push("gviz.sheetId is still a placeholder.");
+      if (problems.length) console.warn("[VoteAPI] CONFIG VERIFICATION FAILED:\n" + problems.join("\n"));
+      else console.log("[VoteAPI] Config looks clean.");
+      return problems;
+    }
+
+    function getMatchConfig(matchNumber) {
+      const m = CONFIG.matches[matchNumber];
+      if (!m) throw new Error(`[VoteAPI] Unknown match number: ${matchNumber}. Must be 1-5.`);
+      return m;
+    }
+
+    function fetchGvizSheet() {
+      const { sheetId, sheetName } = CONFIG.gviz;
+      const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq` +
+                  `?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&_cb=${Date.now()}`;
+      return fetch(url)
+        .then(res => { if (!res.ok) throw new Error(`[VoteAPI] GViz HTTP ${res.status}`); return res.text(); })
+        .then(text => {
+          const match = text.match(/setResponse\(([\s\S]*)\);\s*$/);
+          if (!match) throw new Error("[VoteAPI] Unexpected GViz response shape.");
+          const parsed = JSON.parse(match[1]);
+          if (!parsed.table) throw new Error("[VoteAPI] GViz response had no `table` field.");
+          return parsed.table;
+        });
+    }
+
+    function tallyMatch(table, matchNumber) {
+      const colMap = CONFIG.gviz.columns[matchNumber];
+      const m = getMatchConfig(matchNumber);
+      if (!colMap) throw new Error(`[VoteAPI] No GViz column mapping for match ${matchNumber}.`);
+      const winner = {}; m.winnerValues.forEach(v => winner[v] = 0);
+      const speaker = {}; m.speakerValues.forEach(v => speaker[v] = 0);
+      (table.rows||[]).forEach(row => {
+        const wv = row.c[colMap.winnerCol]?.v;
+        if (wv != null && Object.prototype.hasOwnProperty.call(winner,wv)) winner[wv]++;
+        const sv = row.c[colMap.speakerCol]?.v;
+        if (sv != null && Object.prototype.hasOwnProperty.call(speaker,sv)) speaker[sv]++;
+      });
+      return { winner, speaker };
+    }
+
+    function buildPayload(matchNumber, winnerValue, speakerValue) {
+      const m = getMatchConfig(matchNumber);
+      if (!m.winnerValues.includes(winnerValue))
+        throw new Error(`[VoteAPI] "${winnerValue}" not valid for Match ${matchNumber}.`);
+      if (!m.speakerValues.includes(speakerValue))
+        throw new Error(`[VoteAPI] "${speakerValue}" not valid for Match ${matchNumber}.`);
+      const params = new URLSearchParams();
+      params.append(m.winnerEntry, winnerValue);
+      params.append(m.speakerEntry, speakerValue);
+      if (CONFIG.padUnvotedMatches) {
+        for (const [num, mc] of Object.entries(CONFIG.matches)) {
+          if (Number(num) === Number(matchNumber)) continue;
+          const fb = FALLBACK[num];
+          params.append(mc.winnerEntry, fb.winner);
+          params.append(mc.speakerEntry, fb.speaker);
+        }
+      }
+      for (const [key, value] of Object.entries(CONFIG.hiddenFields)) params.append(key, value);
+      return params;
+    }
+
+    function submitVote(matchNumber, winnerValue, speakerValue, options = {}) {
+      const { dryRun = false, optimisticDelayMs = 700 } = options;
+      let params;
+      try { params = buildPayload(matchNumber, winnerValue, speakerValue); }
+      catch(err) { return Promise.reject(err); }
+      if (dryRun) {
+        console.log("[VoteAPI] DRY RUN — payload:");
+        for (const [k,v] of params.entries()) console.log(`  ${k} = ${v}`);
+        return Promise.resolve({ dryRun: true, params });
+      }
+      const fetchPromise = fetch(CONFIG.endpoint, {
+        method: "POST", mode: "no-cors",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString()
+      }).catch(err => console.warn("[VoteAPI] Network-level fetch error:", err));
+      return new Promise(resolve => {
+        fetchPromise.finally(() => setTimeout(() => resolve({ optimistic: true }), optimisticDelayMs));
+      });
+    }
+
+    return { CONFIG, verifyConfig, getMatchConfig, buildPayload, submitVote, fetchGvizSheet, tallyMatch };
+  })();
+
+  window.VoteAPI = VoteAPI;
+  } // end if typeof VoteAPI === "undefined"
+  </script>
+
+  <script>
+  /* ============================================================
+   * vote.js — Phase 3 Voter SPA Controller
+   * ============================================================ */
+  (function () {
+    "use strict";
+
+    // ── SCREEN ROUTER ─────────────────────────────────────────
+    const screens = {
+      vote:    document.getElementById("screen-vote"),
+      voted:   document.getElementById("screen-voted"),
+      success: document.getElementById("screen-success"),
+      error:   document.getElementById("screen-error"),
+    };
+    function showScreen(name) {
+      Object.values(screens).forEach(s => s.classList.remove("active"));
+      if (screens[name]) screens[name].classList.add("active");
+    }
+
+    // ── POPULATE UI FOR A GIVEN MATCH ─────────────────────────
+    function populateForMatch(matchNum) {
+      const cfg = VoteAPI.getMatchConfig(matchNum);
+      const [teamA, teamB] = cfg.winnerValues;
+      const [spkrA, spkrB] = cfg.speakerValues;
+
+      document.getElementById("vote-match-label").textContent = `Match ${matchNum}`;
+      document.getElementById("vote-vs").textContent          = `${teamA} vs ${teamB}`;
+      document.getElementById("text-winner-a").textContent    = teamA;
+      document.getElementById("text-winner-b").textContent    = teamB;
+      document.getElementById("text-speaker-a").textContent   = spkrA;
+      document.getElementById("text-speaker-b").textContent   = spkrB;
+
+      // Reset selections
+      selectedWinner  = null;
+      selectedSpeaker = null;
+      document.querySelectorAll(".radio-option").forEach(el => {
+        el.classList.remove("selected");
+        el.setAttribute("aria-checked","false");
+      });
+      document.querySelectorAll("input[type=radio]").forEach(r => r.checked = false);
+      hideValidation();
+    }
+
+    // ── URL PARAM ─────────────────────────────────────────────
+    const urlParams  = new URLSearchParams(window.location.search);
+    const matchParam = parseInt(urlParams.get("match"), 10);
+    const isPreview  = !urlParams.has("match");  // no ?match → dev/preview mode
+
+    // In preview mode show switcher and default to match 1
+    let matchNum;
+    if (isPreview) {
+      matchNum = 1;
+      document.getElementById("dev-switcher").style.display = "block";
+      document.querySelectorAll(".dev-tab").forEach(tab => {
+        tab.addEventListener("click", () => {
+          document.querySelectorAll(".dev-tab").forEach(t => t.classList.remove("active"));
+          tab.classList.add("active");
+          matchNum = parseInt(tab.dataset.m, 10);
+          populateForMatch(matchNum);
+          showScreen("vote");
+        });
+      });
+    } else if (!matchParam || matchParam < 1 || matchParam > 5 || isNaN(matchParam)) {
+      showScreen("error");
+      return;
+    } else {
+      matchNum = matchParam;
+      // Production double-vote lockout
+      if (localStorage.getItem(`voted_match_${matchNum}`)) {
+        showScreen("voted");
+        return;
+      }
+    }
+
+    // ── SELECTION STATE ───────────────────────────────────────
+    let selectedWinner  = null;
+    let selectedSpeaker = null;
+
+    // ── POPULATE INITIAL MATCH ────────────────────────────────
+    populateForMatch(matchNum);
+    showScreen("vote");
+
+    // ── RADIO BINDING ─────────────────────────────────────────
+    function bindOption(optId, getValueFn, onSelect) {
+      const el = document.getElementById(optId);
+      function activate() {
+        const val = getValueFn();
+        // Deselect sibling in same group
+        const name = el.querySelector("input").name;
+        document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
+          const parent = r.closest(".radio-option");
+          parent.classList.remove("selected");
+          parent.setAttribute("aria-checked","false");
+        });
+        el.classList.add("selected");
+        el.setAttribute("aria-checked","true");
+        el.querySelector("input").checked = true;
+        onSelect(val);
+        hideValidation();
+      }
+      el.addEventListener("click", activate);
+      el.addEventListener("keydown", e => {
+        if (e.key === " " || e.key === "Enter") { e.preventDefault(); activate(); }
+      });
+    }
+
+    // We bind lazily using closures that read current team/speaker text from DOM
+    bindOption("opt-winner-a",  () => document.getElementById("text-winner-a").textContent,  v => selectedWinner  = v);
+    bindOption("opt-winner-b",  () => document.getElementById("text-winner-b").textContent,  v => selectedWinner  = v);
+    bindOption("opt-speaker-a", () => document.getElementById("text-speaker-a").textContent, v => selectedSpeaker = v);
+    bindOption("opt-speaker-b", () => document.getElementById("text-speaker-b").textContent, v => selectedSpeaker = v);
+
+    // ── VALIDATION ────────────────────────────────────────────
+    const validationMsg = document.getElementById("validation-msg");
+    function showValidation(msg) { validationMsg.textContent = msg; validationMsg.classList.add("visible"); }
+    function hideValidation()    { validationMsg.classList.remove("visible"); }
+
+    // ── SUBMIT ────────────────────────────────────────────────
+    const btnSubmit  = document.getElementById("btn-submit");
+    const btnLabel   = document.getElementById("btn-label");
+    const btnSpinner = document.getElementById("btn-spinner");
+
+    function setSubmitting(active) {
+      btnSubmit.disabled = active;
+      btnLabel.style.display = active ? "none" : "inline";
+      btnSpinner.classList.toggle("visible", active);
+    }
+
+    btnSubmit.addEventListener("click", () => {
+      if (!selectedWinner)  { showValidation("Please choose the winning team."); return; }
+      if (!selectedSpeaker) { showValidation("Please choose the best speaker."); return; }
+      hideValidation();
+      setSubmitting(true);
+
+      VoteAPI.submitVote(matchNum, selectedWinner, selectedSpeaker)
+        .then(() => {
+          if (!isPreview) {
+            localStorage.setItem(`voted_match_${matchNum}`, JSON.stringify({
+              match: matchNum, winner: selectedWinner, speaker: selectedSpeaker, ts: Date.now()
+            }));
+          }
+          document.getElementById("recap-winner").textContent  = selectedWinner;
+          document.getElementById("recap-speaker").textContent = selectedSpeaker;
+          showScreen("success");
+        })
+        .catch(err => {
+          console.error("[vote.html] submitVote rejected:", err);
+          setSubmitting(false);
+          showValidation("Something went wrong. Please try again.");
+        });
+    });
+
+  })();
+  </script>
+
+</body>
+</html>

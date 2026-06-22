@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ELL Grand Debate — Live Results</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    /* ── TOKENS ─────────────────────────────────────────────── */
+    :root {
+      --bg:          #0a0c14;
+      --surface:     #111420;
+      --border:      #1e2236;
+      --gold:        #f5c842;
+      --gold-dim:    #a88a1e;
+      --teal:        #2dd4bf;
+      --teal-dim:    #1a8a7a;
+      --text:        #e8eaf0;
+      --text-muted:  #6b7280;
+      --danger:      #ef4444;
+      --bar-a:       #f5c842;
+      --bar-b:       #2dd4bf;
+      --font-display: 'Kanit', sans-serif;
+      --font-body:    'Mulish', sans-serif;
+    }
+
+    @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;900&family=Mulish:wght@400;600;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ── LAYOUT ─────────────────────────────────────────────── */
+    #app {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      grid-template-columns: 1fr 220px;
+      grid-template-areas:
+        "header  header"
+        "chart   sidebar"
+        "footer  footer";
+      width: 100vw;
+      height: 100vh;
+      padding: 20px 24px 16px;
+      gap: 16px;
+    }
+
+    /* ── HEADER ─────────────────────────────────────────────── */
+    #header {
+      grid-area: header;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 14px;
+    }
+
+    #header-left { display: flex; flex-direction: column; gap: 2px; }
+
+    #event-label {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    #match-title {
+      font-family: var(--font-display);
+      font-size: 36px;
+      font-weight: 900;
+      line-height: 1;
+      color: var(--text);
+      transition: opacity 0.25s;
+    }
+
+    #match-subtitle {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    /* match selector tabs */
+    #match-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .match-tab {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+      position: relative;
+    }
+    .match-tab:hover { border-color: var(--gold-dim); color: var(--gold); }
+    .match-tab.active {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: var(--bg);
+    }
+    /* keyboard hint badge */
+    .match-tab::after {
+      content: attr(data-key);
+      position: absolute;
+      bottom: 3px; right: 5px;
+      font-size: 8px;
+      font-family: var(--font-body);
+      opacity: 0.5;
+    }
+
+    /* ── CHART AREA ─────────────────────────────────────────── */
+    #chart-area {
+      grid-area: chart;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+    }
+
+    #chart-container {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 20px 20px 10px;
+      position: relative;
+      transition: filter 0.4s;
+    }
+    #chart-container.blurred { filter: blur(14px); }
+
+    #blur-overlay {
+      display: none;
+      position: absolute; inset: 0;
+      border-radius: 12px;
+      background: rgba(10, 12, 20, 0.55);
+      align-items: center; justify-content: center;
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      z-index: 10;
+    }
+    #chart-container.blurred #blur-overlay { display: flex; }
+
+    canvas { display: block; width: 100% !important; }
+
+    /* ── SIDEBAR ─────────────────────────────────────────────── */
+    #sidebar {
+      grid-area: sidebar;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .side-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .side-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    /* QR card */
+    #qr-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    #qr-code-el {
+      width: 160px; height: 160px;
+      background: #fff;
+      border-radius: 6px;
+      padding: 6px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #qr-code-el img, #qr-code-el canvas { display: block; }
+
+    #qr-url {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-align: center;
+      word-break: break-all;
+      line-height: 1.4;
+    }
+
+    /* Tally card */
+    #tally-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .tally-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .tally-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .tally-dot.a { background: var(--bar-a); }
+    .tally-dot.b { background: var(--bar-b); }
+
+    .tally-name {
+      font-size: 12px;
+      color: var(--text);
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .tally-count {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gold);
+      min-width: 28px;
+      text-align: right;
+    }
+
+    /* Poll status card */
+    #poll-status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #poll-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--teal);
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    #poll-dot.error { background: var(--danger); }
+    #poll-dot.polling {
+      animation: pulse 0.8s ease-in-out infinite alternate;
+    }
+    @keyframes pulse {
+      from { opacity: 1; }
+      to   { opacity: 0.25; }
+    }
+
+    #poll-text {
+      font-size: 11px;
+      color: var(--text-muted);
+      flex: 1;
+    }
+
+    #total-votes {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--teal);
+    }
+
+    /* ── FOOTER ─────────────────────────────────────────────── */
+    #footer {
+      grid-area: footer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .kb-hint {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .kb-key {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .kb-key kbd {
+      display: inline-block;
+      padding: 2px 7px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface);
+      font-family: var(--font-body);
+      font-size: 10px;
+      color: var(--text);
+    }
+
+    #config-warning {
+      font-size: 11px;
+      color: var(--danger);
+      display: none;
+    }
+    #config-warning.visible { display: block; }
+
+    /* ── RESET FLASH ANIMATION ──────────────────────────────── */
+    @keyframes bar-zero {
+      0%   { opacity: 1; }
+      40%  { opacity: 0.1; }
+      100% { opacity: 1; }
+    }
+    .bar-reset { animation: bar-zero 0.5s ease-in-out; }
+  </style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- HEADER -->
+  <header id="header">
+    <div id="header-left">
+      <span id="event-label">ELL Grand Debate · Live Audience Vote</span>
+      <h1 id="match-title">Match 1</h1>
+      <p id="match-subtitle">Team 1 vs Team 2</p>
+    </div>
+    <nav id="match-tabs" aria-label="Match selector">
+      <button class="match-tab active" data-match="1" data-key="1">1</button>
+      <button class="match-tab"        data-match="2" data-key="2">2</button>
+      <button class="match-tab"        data-match="3" data-key="3">3</button>
+      <button class="match-tab"        data-match="4" data-key="4">4</button>
+      <button class="match-tab"        data-match="5" data-key="5">5</button>
+    </nav>
+  </header>
+
+  <!-- CHART -->
+  <section id="chart-area">
+    <div id="chart-container">
+      <div id="blur-overlay">Results hidden</div>
+      <canvas id="voteChart"></canvas>
+    </div>
+  </section>
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+
+    <!-- QR CODE -->
+    <div class="side-card">
+      <div class="side-card-label">Vote from your phone</div>
+      <div id="qr-wrapper">
+        <div id="qr-code-el"></div>
+        <div id="qr-url"></div>
+      </div>
+    </div>
+
+    <!-- LIVE TALLY -->
+    <div class="side-card">
+      <div class="side-card-label">Winner votes</div>
+      <div id="tally-grid">
+        <div class="tally-row">
+          <span class="tally-dot a"></span>
+          <span class="tally-name" id="tally-a-name">TEAM 1</span>
+          <span class="tally-count" id="tally-a-count">—</span>
+        </div>
+        <div class="tally-row">
+          <span class="tally-dot b"></span>
+          <span class="tally-name" id="tally-b-name">TEAM 2</span>
+          <span class="tally-count" id="tally-b-count">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- POLL STATUS -->
+    <div class="side-card">
+      <div class="side-card-label">Live poll</div>
+      <div id="poll-status-row">
+        <div id="poll-dot"></div>
+        <span id="poll-text">Connecting…</span>
+        <span id="total-votes"></span>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- FOOTER -->
+  <footer id="footer">
+    <div class="kb-hint">
+      <span class="kb-key"><kbd>1</kbd>–<kbd>5</kbd> Switch match</span>
+      <span class="kb-key"><kbd>Space</kbd> Blur / reveal</span>
+      <span class="kb-key"><kbd>R</kbd> Zero-out chart</span>
+    </div>
+    <div id="config-warning">⚠ Entry IDs unverified — dryRun mode recommended</div>
+  </footer>
+
+</div>
+
+<!-- Load api.js from same directory -->
+<script src="api.js"></script>
+
+<script>
+/* ============================================================
+ * screen.js — Phase 2 Dashboard Controller
+ * Depends on: VoteAPI (api.js), Chart.js, QRCode.js
+ * ============================================================ */
+
+(function () {
+  "use strict";
+
+  // ── CONSTANTS ────────────────────────────────────────────
+  const POLL_INTERVAL_MS = 3000;
+
+  // Base URL for vote.html — replace with real GitHub Pages base if needed.
+  // Defaults to same origin + path, replacing "screen.html" with "vote.html".
+  const VOTE_BASE_URL = (() => {
+    const loc = window.location.href.replace(/screen\.html.*$/, "vote.html");
+    // If opened as a local file (file://) fallback to a placeholder
+    return loc.startsWith("file://")
+      ? "https://your-domain.github.io/ell-debate/vote.html"
+      : loc;
+  })();
+
+  // ── STATE ────────────────────────────────────────────────
+  let activeMatch    = 1;
+  let isBlurred      = false;
+  let pollTimer      = null;
+  let lastTable      = null;   // cached GViz table for tab-switch without re-fetch
+  let qrInstance     = null;
+
+  // ── DOM REFS ─────────────────────────────────────────────
+  const matchTitle     = document.getElementById("match-title");
+  const matchSubtitle  = document.getElementById("match-subtitle");
+  const chartContainer = document.getElementById("chart-container");
+  const chartCanvas    = document.getElementById("voteChart");
+  const tallyAName     = document.getElementById("tally-a-name");
+  const tallyBName     = document.getElementById("tally-b-name");
+  const tallyACount    = document.getElementById("tally-a-count");
+  const tallyBCount    = document.getElementById("tally-b-count");
+  const pollDot        = document.getElementById("poll-dot");
+  const pollText       = document.getElementById("poll-text");
+  const totalVotesEl   = document.getElementById("total-votes");
+  const qrCodeEl       = document.getElementById("qr-code-el");
+  const qrUrlEl        = document.getElementById("qr-url");
+  const configWarning  = document.getElementById("config-warning");
+  const matchTabs      = document.querySelectorAll(".match-tab");
+
+  // ── CONFIG VERIFICATION ──────────────────────────────────
+  const configProblems = VoteAPI.verifyConfig();
+  if (configProblems.length > 0) {
+    configWarning.classList.add("visible");
+  }
+
+  // ── CHART SETUP ──────────────────────────────────────────
+  const CHART_COLORS = {
+    barA:       "rgba(245, 200, 66, 0.85)",
+    barABorder: "#f5c842",
+    barB:       "rgba(45, 212, 191, 0.85)",
+    barBBorder: "#2dd4bf",
+    grid:       "rgba(255,255,255,0.06)",
+    text:       "#e8eaf0",
+  };
+
+  const chartData = {
+    labels: ["TEAM 1", "TEAM 2", "", "Speaker T1", "Speaker T2"],
+    datasets: [
+      {
+        label: "Votes",
+        data: [0, 0, null, 0, 0],
+        backgroundColor: [
+          CHART_COLORS.barA, CHART_COLORS.barB,
+          "transparent",
+          CHART_COLORS.barA, CHART_COLORS.barB,
+        ],
+        borderColor: [
+          CHART_COLORS.barABorder, CHART_COLORS.barBBorder,
+          "transparent",
+          CHART_COLORS.barABorder, CHART_COLORS.barBBorder,
+        ],
+        borderWidth: 2,
+        borderRadius: 6,
+        borderSkipped: false,
+      }
+    ]
+  };
+
+  const chart = new Chart(chartCanvas, {
+    type: "bar",
+    data: chartData,
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 600, easing: "easeOutCubic" },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ` ${ctx.parsed.x} votes`
+          },
+          backgroundColor: "#1e2236",
+          titleColor: "#e8eaf0",
+          bodyColor: "#a0aec0",
+          borderColor: "#2d3148",
+          borderWidth: 1,
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: {
+            stepSize: 1,
+            color: CHART_COLORS.text,
+            font: { family: "'Mulish', sans-serif", size: 12 }
+          },
+          grid: { color: CHART_COLORS.grid },
+          border: { color: "transparent" },
+        },
+        y: {
+          ticks: {
+            color: CHART_COLORS.text,
+            font: { family: "'Kanit', sans-serif", size: 14, weight: "600" }
+          },
+          grid: { display: false },
+          border: { color: "transparent" },
+        }
+      }
+    }
+  });
+
+  // ── MATCH METADATA HELPER ────────────────────────────────
+  function getMatchMeta(matchNum) {
+    const cfg = VoteAPI.CONFIG.matches[matchNum];
+    const teamA = cfg.winnerValues[0];
+    const teamB = cfg.winnerValues[1];
+    const spkA  = cfg.speakerValues[0];
+    const spkB  = cfg.speakerValues[1];
+    return { teamA, teamB, spkA, spkB };
+  }
+
+  // ── UPDATE CHART & TALLY ─────────────────────────────────
+  function applyTally(tally, meta) {
+    const { teamA, teamB, spkA, spkB } = meta;
+
+    const wA = tally.winner[teamA] ?? 0;
+    const wB = tally.winner[teamB] ?? 0;
+    const sA = tally.speaker[spkA] ?? 0;
+    const sB = tally.speaker[spkB] ?? 0;
+    const total = wA + wB;
+
+    // Chart labels
+    chartData.labels = [teamA, teamB, "", spkA, spkB];
+    chartData.datasets[0].data = [wA, wB, null, sA, sB];
+    chart.update();
+
+    // Sidebar tally
+    tallyAName.textContent  = teamA;
+    tallyBName.textContent  = teamB;
+    tallyACount.textContent = wA;
+    tallyBCount.textContent = wB;
+
+    // Total vote count
+    totalVotesEl.textContent = total > 0 ? `${total} votes` : "";
+  }
+
+  // ── QR CODE ──────────────────────────────────────────────
+  function buildQR(matchNum) {
+    const url = `${VOTE_BASE_URL}?match=${matchNum}`;
+    qrUrlEl.textContent = url;
+    qrCodeEl.innerHTML  = "";
+    qrInstance = new QRCode(qrCodeEl, {
+      text:          url,
+      width:         148,
+      height:        148,
+      colorDark:     "#000000",
+      colorLight:    "#ffffff",
+      correctLevel:  QRCode.CorrectLevel.M,
+    });
+  }
+
+  // ── POLL LOGIC ───────────────────────────────────────────
+  function setPollState(state, message) {
+    pollDot.className  = ""; // reset classes
+    if (state === "polling") pollDot.classList.add("polling");
+    if (state === "error")   pollDot.classList.add("error");
+    pollText.textContent = message;
+  }
+
+  function doPoll() {
+    setPollState("polling", "Fetching…");
+    VoteAPI.fetchGvizSheet()
+      .then((table) => {
+        lastTable = table;
+        const tally = VoteAPI.tallyMatch(table, activeMatch);
+        applyTally(tally, getMatchMeta(activeMatch));
+        const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        setPollState("ok", `Updated ${now}`);
+      })
+      .catch((err) => {
+        console.error("[screen.html] Poll error:", err);
+        setPollState("error", "Poll failed — retrying…");
+      });
+  }
+
+  function startPolling() {
+    if (pollTimer) clearInterval(pollTimer);
+    doPoll();                             // immediate first fetch
+    pollTimer = setInterval(doPoll, POLL_INTERVAL_MS);
+  }
+
+  // ── SWITCH MATCH ─────────────────────────────────────────
+  function switchMatch(matchNum) {
+    if (matchNum < 1 || matchNum > 5) return;
+    activeMatch = matchNum;
+
+    // Update title
+    const meta = getMatchMeta(matchNum);
+    matchTitle.textContent    = `Match ${matchNum}`;
+    matchSubtitle.textContent = `${meta.teamA} vs ${meta.teamB}`;
+
+    // Update tabs
+    matchTabs.forEach((tab) => {
+      tab.classList.toggle("active", Number(tab.dataset.match) === matchNum);
+    });
+
+    // QR
+    buildQR(matchNum);
+
+    // If we already have a cached table, re-tally immediately without waiting for next poll
+    if (lastTable) {
+      try {
+        const tally = VoteAPI.tallyMatch(lastTable, matchNum);
+        applyTally(tally, meta);
+      } catch (_) {
+        // If column mapping fails, just zero out
+        applyTally({ winner: {}, speaker: {} }, meta);
+      }
+    }
+
+    // Restart polling timer to get fresh data for the new match right away
+    startPolling();
+  }
+
+  // ── BLUR TOGGLE ──────────────────────────────────────────
+  function toggleBlur() {
+    isBlurred = !isBlurred;
+    chartContainer.classList.toggle("blurred", isBlurred);
+  }
+
+  // ── ZERO-OUT (R) ─────────────────────────────────────────
+  function zeroOutAnimation() {
+    // Animate bars to zero, then restore on next poll
+    chartData.datasets[0].data = chartData.datasets[0].data.map(
+      (v) => (v === null ? null : 0)
+    );
+    chart.update();
+
+    // Also zero sidebar tally
+    tallyACount.textContent = "0";
+    tallyBCount.textContent = "0";
+    totalVotesEl.textContent = "";
+
+    // Flash the canvas element
+    chartCanvas.classList.add("bar-reset");
+    setTimeout(() => chartCanvas.classList.remove("bar-reset"), 500);
+
+    // Trigger a fresh poll after the animation settles
+    setTimeout(doPoll, 600);
+  }
+
+  // ── KEYBOARD HANDLING ────────────────────────────────────
+  document.addEventListener("keydown", (e) => {
+    // Ignore if focus is in an input
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
+    switch (e.key) {
+      case "1": case "2": case "3": case "4": case "5":
+        switchMatch(Number(e.key));
+        break;
+      case " ":
+        e.preventDefault();   // prevent page scroll
+        toggleBlur();
+        break;
+      case "r": case "R":
+        zeroOutAnimation();
+        break;
+    }
+  });
+
+  // ── TAB CLICK HANDLING ───────────────────────────────────
+  matchTabs.forEach((tab) => {
+    tab.addEventListener("click", () => switchMatch(Number(tab.dataset.match)));
+  });
+
+  // ── BOOT ─────────────────────────────────────────────────
+  buildQR(1);
+  switchMatch(1);   // triggers startPolling internally
+
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ELL Grand Debate — Phase 4 Test Harness</title>
+
+<style>
+  :root {
+    --bg:          #0a0c14;
+    --surface:     #111420;
+    --surface-hi:  #181c2c;
+    --border:      #1e2236;
+    --border-hi:   #2d3454;
+    --gold:        #f5c842;
+    --gold-dim:    #a88a1e;
+    --teal:        #2dd4bf;
+    --teal-dim:    #1a8a7a;
+    --text:        #e8eaf0;
+    --text-muted:  #6b7280;
+    --danger:      #ef4444;
+    --danger-dim:  #7f1d1d;
+    --font-display:'Kanit', sans-serif;
+    --font-body:   'Mulish', sans-serif;
+    --font-mono:   'Courier New', monospace;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;900&family=Mulish:wght@400;600;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  #app { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+  /* ── HEADER ───────────────────────────────────────────── */
+  #page-header { display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
+  #page-eyebrow {
+    font-family: var(--font-display); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold);
+  }
+  #page-title {
+    font-family: var(--font-display); font-size: 30px; font-weight: 900;
+  }
+  #page-sub { font-size: 13px; color: var(--text-muted); max-width: 640px; }
+
+  /* ── BANNER ───────────────────────────────────────────── */
+  .banner {
+    border-radius: 10px; padding: 12px 16px; font-size: 13px;
+    display: none; line-height: 1.5;
+  }
+  .banner.visible { display: block; }
+  .banner.warn {
+    background: rgba(239,68,68,0.08); border: 1px solid var(--danger-dim); color: #fca5a5;
+  }
+  .banner.ok {
+    background: rgba(45,212,191,0.08); border: 1px solid var(--teal-dim); color: var(--teal);
+  }
+  .banner code { font-family: var(--font-mono); background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px; }
+
+  /* ── CARD ─────────────────────────────────────────────── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px;
+  }
+  .card-title {
+    font-family: var(--font-display); font-size: 15px; font-weight: 700;
+    letter-spacing: 0.04em; margin-bottom: 4px;
+  }
+  .card-desc { font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5; }
+
+  /* ── CONTROLS ─────────────────────────────────────────── */
+  .controls-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; margin-bottom: 14px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .field input[type="number"] {
+    background: var(--surface-hi); border: 1px solid var(--border-hi); border-radius: 8px;
+    color: var(--text); font-family: var(--font-mono); font-size: 14px; padding: 8px 10px; width: 90px;
+  }
+  .field input[type="number"]:focus { outline: none; border-color: var(--gold-dim); }
+
+  .toggle-row { display: flex; align-items: center; gap: 10px; }
+  .toggle-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--danger); }
+  .toggle-row label { font-size: 12.5px; color: var(--text-muted); }
+  .toggle-row.disabled { opacity: 0.4; }
+  .toggle-row.disabled label { cursor: not-allowed; }
+
+  button {
+    font-family: var(--font-display); font-weight: 700; font-size: 13px;
+    letter-spacing: 0.04em; border-radius: 9px; border: none;
+    padding: 10px 18px; cursor: pointer; transition: opacity 0.15s, transform 0.1s;
+  }
+  button:active { transform: scale(0.97); }
+  button:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+  .btn-primary { background: var(--gold); color: var(--bg); }
+  .btn-primary:hover:not(:disabled) { opacity: 0.9; }
+  .btn-ghost { background: var(--surface-hi); color: var(--text); border: 1px solid var(--border-hi); }
+  .btn-ghost:hover:not(:disabled) { border-color: var(--gold-dim); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover:not(:disabled) { opacity: 0.9; }
+
+  /* ── STATS ────────────────────────────────────────────── */
+  .stats-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .stat {
+    background: var(--surface-hi); border: 1px solid var(--border-hi); border-radius: 10px;
+    padding: 10px 14px; min-width: 100px;
+  }
+  .stat-label { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+  .stat-value { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--gold); }
+  .stat-value.danger { color: var(--danger); }
+  .stat-value.teal { color: var(--teal); }
+
+  /* ── LOG ──────────────────────────────────────────────── */
+  .log {
+    background: #060710; border: 1px solid var(--border); border-radius: 10px;
+    height: 260px; overflow-y: auto; padding: 10px 12px;
+    font-family: var(--font-mono); font-size: 12px; line-height: 1.6;
+  }
+  .log-line { white-space: pre-wrap; word-break: break-word; }
+  .log-line.fire   { color: var(--text); }
+  .log-line.ok     { color: var(--teal); }
+  .log-line.err    { color: var(--danger); }
+  .log-line.info   { color: var(--text-muted); }
+  .log-empty { color: var(--text-muted); font-style: italic; }
+
+  .progress-track {
+    height: 6px; border-radius: 3px; background: var(--surface-hi);
+    overflow: hidden; margin-bottom: 14px;
+  }
+  .progress-fill { height: 100%; background: var(--gold); width: 0%; transition: width 0.15s linear; }
+
+  footer { font-size: 11px; color: var(--text-muted); text-align: center; padding: 10px 0 4px; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <div id="page-header">
+    <div id="page-eyebrow">Phase 4 — Local Simulation &amp; Hardening</div>
+    <div id="page-title">Vote Suite Test Harness</div>
+    <div id="page-sub">
+      Fires a burst of fake votes through the same <code style="font-family:var(--font-mono)">VoteAPI</code>
+      used by vote.html, then watches the GViz read-side to confirm the cache-buster keeps the
+      projector screen from looking frozen (Hazard 3). Not part of the production deploy — keep this
+      file off GitHub Pages or behind a separate path.
+    </div>
+  </div>
+
+  <div id="config-banner" class="banner warn">
+    ⚠️ <strong>Config not yet verified.</strong> Entry IDs in <code>CONFIG.matches</code> still carry the
+    <code>_sentinel</code> placeholder suffix — that suffix does not exist in real Google Forms markup,
+    so these are still unverified guesses, not captured values. <code>gviz.sheetId</code> has been set
+    to a real-looking ID, but the read side can't be trusted until the write side is. Live submission is
+    locked out — this harness will run in forced <strong>dry-run</strong> mode until the real
+    <code>entry.XXXXXXX</code> names are captured from the Network tab.
+  </div>
+
+  <!-- ═══════════════════════ VOTE BURST SIMULATOR ═══════════════════════ -->
+  <div class="card">
+    <div class="card-title">1 — Vote Burst Simulator</div>
+    <div class="card-desc">
+      Simulates an audience voting in a short window: each fake vote picks a random match (1–5), a
+      random legal winner value, and a random legal speaker value, then calls
+      <code style="font-family:var(--font-mono)">VoteAPI.submitVote()</code> exactly the way vote.html
+      does — same payload builder, same optimistic resolve. Stagger is randomized per vote, not evenly
+      spaced, to mimic real audience timing rather than a metronome.
+    </div>
+
+    <div class="controls-row">
+      <div class="field">
+        <label for="num-votes">Votes to fire</label>
+        <input type="number" id="num-votes" value="20" min="1" max="500" />
+      </div>
+      <div class="field">
+        <label for="min-stagger">Min gap (ms)</label>
+        <input type="number" id="min-stagger" value="80" min="0" max="10000" />
+      </div>
+      <div class="field">
+        <label for="max-stagger">Max gap (ms)</label>
+        <input type="number" id="max-stagger" value="600" min="0" max="20000" />
+      </div>
+      <div class="toggle-row" id="live-toggle-row">
+        <input type="checkbox" id="live-mode" disabled />
+        <label for="live-mode">Send for real (unlocks only when config is verified)</label>
+      </div>
+    </div>
+
+    <div class="controls-row">
+      <button class="btn-primary" id="btn-run-burst">Run burst</button>
+      <button class="btn-ghost" id="btn-stop-burst" disabled>Stop</button>
+      <button class="btn-ghost" id="btn-clear-burst-log">Clear log</button>
+    </div>
+
+    <div class="progress-track"><div class="progress-fill" id="burst-progress"></div></div>
+
+    <div class="stats-row">
+      <div class="stat"><div class="stat-label">Fired</div><div class="stat-value" id="stat-fired">0 / 0</div></div>
+      <div class="stat"><div class="stat-label">Resolved</div><div class="stat-value teal" id="stat-resolved">0</div></div>
+      <div class="stat"><div class="stat-label">Build errors</div><div class="stat-value danger" id="stat-errors">0</div></div>
+      <div class="stat"><div class="stat-label">Elapsed</div><div class="stat-value" id="stat-elapsed">0.0s</div></div>
+    </div>
+
+    <div class="log" id="burst-log"><div class="log-empty">No votes fired yet.</div></div>
+  </div>
+
+  <!-- ═══════════════════════ GVIZ CACHE-BUST MONITOR ═══════════════════════ -->
+  <div class="card">
+    <div class="card-title">2 — GViz Cache-Bust Monitor</div>
+    <div class="card-desc">
+      Polls <code style="font-family:var(--font-mono)">VoteAPI.fetchGvizSheet()</code> on the same
+      cadence as screen.html and logs the row count + a content fingerprint at each tick. Run this
+      <em>during or right after</em> a burst above — if the row count or fingerprint changes within a
+      couple of poll cycles, the cache-buster (<code>&amp;_cb=Date.now()</code>) is doing its job and
+      Hazard 3 is closed. If it stays flat for 30–60s while you know votes were sent, that's the
+      Sheets-side cache reasserting itself and is worth re-testing against the live sheet, not just this
+      harness.
+    </div>
+
+    <div class="controls-row">
+      <div class="field">
+        <label for="poll-interval">Poll every (ms)</label>
+        <input type="number" id="poll-interval" value="3000" min="500" max="30000" />
+      </div>
+      <div class="field">
+        <label for="poll-duration">Run for (s)</label>
+        <input type="number" id="poll-duration" value="60" min="5" max="600" />
+      </div>
+    </div>
+
+    <div class="controls-row">
+      <button class="btn-primary" id="btn-start-monitor">Start monitor</button>
+      <button class="btn-danger" id="btn-stop-monitor" disabled>Stop</button>
+      <button class="btn-ghost" id="btn-clear-monitor-log">Clear log</button>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat"><div class="stat-label">Polls</div><div class="stat-value" id="stat-polls">0</div></div>
+      <div class="stat"><div class="stat-label">Last row count</div><div class="stat-value teal" id="stat-rowcount">—</div></div>
+      <div class="stat"><div class="stat-label">Changed since start</div><div class="stat-value" id="stat-changed">no</div></div>
+      <div class="stat"><div class="stat-label">Fetch errors</div><div class="stat-value danger" id="stat-fetch-errors">0</div></div>
+    </div>
+
+    <div class="log" id="monitor-log"><div class="log-empty">Monitor idle.</div></div>
+  </div>
+
+  <footer>Phase 4 harness — open this file directly in a browser, no server required.</footer>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// INLINED api.js — VoteAPI data layer
+// Identical contract to api.js / vote.html / screen.html so this harness
+// exercises the exact same code path the production pages use.
+// ═══════════════════════════════════════════════════════════
+if (typeof VoteAPI === "undefined") {
+"use strict";
+
+const VoteAPI = (() => {
+  const CONFIG = {
+    endpoint:
+      "https://docs.google.com/forms/d/e/1FAIpQLSeyiQBjAGY6fyXZ7x2PYK3NEgI5C1lP7CM74HlpdLLxI3nyrQ/formResponse",
+    hiddenFields: {
+      fvv: "1", pageHistory: "0",
+      fbzx: "-6044623654662765961",
+      submissionTimestamp: "-1",
+      partialResponse: '[null,null,"-6044623654662765961"]'
+    },
+    matches: {
+      1: { winnerEntry: "entry.906434186_sentinel",   winnerValues: ["TEAM 1","TEAM 2"],   speakerEntry: "entry.582642887_sentinel",   speakerValues: ["The best speaker of TEAM 1","The best speaker of TEAM 2"] },
+      2: { winnerEntry: "entry.2099640570_sentinel",  winnerValues: ["TEAM 3","TEAM 4"],   speakerEntry: "entry.1646500844_sentinel",  speakerValues: ["The best speaker of TEAM 3","The best speaker of TEAM 4"] },
+      3: { winnerEntry: "entry.1767814271_sentinel",  winnerValues: ["TEAM 5","TEAM 6"],   speakerEntry: "entry.90920490_sentinel",    speakerValues: ["The best speaker of TEAM 5","The best speaker of TEAM 6"] },
+      4: { winnerEntry: "entry.1015563530_sentinel",  winnerValues: ["TEAM 7","TEAM 8"],   speakerEntry: "entry.40306143_sentinel",    speakerValues: ["The best speaker of TEAM 7","The best speaker of TEAM 8"] },
+      5: { winnerEntry: "entry.1563472660_sentinel",  winnerValues: ["TEAM 9","TEAM 10"],  speakerEntry: "entry.1723104247_sentinel",  speakerValues: ["The best speaker of TEAM 9","The best speaker of TEAM 10"] }
+    },
+    gviz: {
+      sheetId: "1ngTh8TDBQgn0rLrCNSEgERTKkMx6BIP-282Jalpzyb0",
+      sheetName: "Form Responses 1",
+      columns: {
+        1: { winnerCol:1,  speakerCol:2  },
+        2: { winnerCol:3,  speakerCol:4  },
+        3: { winnerCol:5,  speakerCol:6  },
+        4: { winnerCol:7,  speakerCol:8  },
+        5: { winnerCol:9,  speakerCol:10 }
+      }
+    },
+    padUnvotedMatches: false
+  };
+
+  const FALLBACK = {
+    1:{ winner:"TEAM 1", speaker:"The best speaker of TEAM 1" },
+    2:{ winner:"TEAM 3", speaker:"The best speaker of TEAM 3" },
+    3:{ winner:"TEAM 5", speaker:"The best speaker of TEAM 5" },
+    4:{ winner:"TEAM 7", speaker:"The best speaker of TEAM 7" },
+    5:{ winner:"TEAM 9", speaker:"The best speaker of TEAM 9" }
+  };
+
+  function verifyConfig() {
+    const problems = [];
+    for (const [num,m] of Object.entries(CONFIG.matches)) {
+      if (m.winnerEntry.includes("_sentinel"))  problems.push(`Match ${num} winnerEntry is unverified.`);
+      if (m.speakerEntry.includes("_sentinel")) problems.push(`Match ${num} speakerEntry is unverified.`);
+    }
+    if (CONFIG.gviz.sheetId === "REPLACE_WITH_REAL_SHEET_ID")
+      problems.push("gviz.sheetId is still a placeholder.");
+    if (problems.length) console.warn("[VoteAPI] CONFIG VERIFICATION FAILED:\n" + problems.join("\n"));
+    else console.log("[VoteAPI] Config looks clean.");
+    return problems;
+  }
+
+  function getMatchConfig(matchNumber) {
+    const m = CONFIG.matches[matchNumber];
+    if (!m) throw new Error(`[VoteAPI] Unknown match number: ${matchNumber}. Must be 1-5.`);
+    return m;
+  }
+
+  function fetchGvizSheet() {
+    const { sheetId, sheetName } = CONFIG.gviz;
+    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq` +
+                `?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&_cb=${Date.now()}`;
+    return fetch(url)
+      .then(res => { if (!res.ok) throw new Error(`[VoteAPI] GViz HTTP ${res.status}`); return res.text(); })
+      .then(text => {
+        const match = text.match(/setResponse\(([\s\S]*)\);\s*$/);
+        if (!match) throw new Error("[VoteAPI] Unexpected GViz response shape.");
+        const parsed = JSON.parse(match[1]);
+        if (!parsed.table) throw new Error("[VoteAPI] GViz response had no `table` field.");
+        return parsed.table;
+      });
+  }
+
+  function tallyMatch(table, matchNumber) {
+    const colMap = CONFIG.gviz.columns[matchNumber];
+    const m = getMatchConfig(matchNumber);
+    if (!colMap) throw new Error(`[VoteAPI] No GViz column mapping for match ${matchNumber}.`);
+    const winner = {}; m.winnerValues.forEach(v => winner[v] = 0);
+    const speaker = {}; m.speakerValues.forEach(v => speaker[v] = 0);
+    (table.rows||[]).forEach(row => {
+      const wv = row.c[colMap.winnerCol]?.v;
+      if (wv != null && Object.prototype.hasOwnProperty.call(winner,wv)) winner[wv]++;
+      const sv = row.c[colMap.speakerCol]?.v;
+      if (sv != null && Object.prototype.hasOwnProperty.call(speaker,sv)) speaker[sv]++;
+    });
+    return { winner, speaker };
+  }
+
+  function buildPayload(matchNumber, winnerValue, speakerValue) {
+    const m = getMatchConfig(matchNumber);
+    if (!m.winnerValues.includes(winnerValue))
+      throw new Error(`[VoteAPI] "${winnerValue}" not valid for Match ${matchNumber}.`);
+    if (!m.speakerValues.includes(speakerValue))
+      throw new Error(`[VoteAPI] "${speakerValue}" not valid for Match ${matchNumber}.`);
+    const params = new URLSearchParams();
+    params.append(m.winnerEntry, winnerValue);
+    params.append(m.speakerEntry, speakerValue);
+    if (CONFIG.padUnvotedMatches) {
+      for (const [num, mc] of Object.entries(CONFIG.matches)) {
+        if (Number(num) === Number(matchNumber)) continue;
+        const fb = FALLBACK[num];
+        params.append(mc.winnerEntry, fb.winner);
+        params.append(mc.speakerEntry, fb.speaker);
+      }
+    }
+    for (const [key, value] of Object.entries(CONFIG.hiddenFields)) params.append(key, value);
+    return params;
+  }
+
+  function submitVote(matchNumber, winnerValue, speakerValue, options = {}) {
+    const { dryRun = false, optimisticDelayMs = 700 } = options;
+    let params;
+    try { params = buildPayload(matchNumber, winnerValue, speakerValue); }
+    catch(err) { return Promise.reject(err); }
+    if (dryRun) {
+      return Promise.resolve({ dryRun: true, params });
+    }
+    const fetchPromise = fetch(CONFIG.endpoint, {
+      method: "POST", mode: "no-cors",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString()
+    }).catch(err => console.warn("[VoteAPI] Network-level fetch error:", err));
+    return new Promise(resolve => {
+      fetchPromise.finally(() => setTimeout(() => resolve({ optimistic: true }), optimisticDelayMs));
+    });
+  }
+
+  return { CONFIG, verifyConfig, getMatchConfig, buildPayload, submitVote, fetchGvizSheet, tallyMatch };
+})();
+
+window.VoteAPI = VoteAPI;
+} // end if typeof VoteAPI === "undefined"
+</script>
+
+<script>
+/* ============================================================
+ * simulate.js — Phase 4 Test Harness Controller
+ * ============================================================ */
+(function () {
+  "use strict";
+
+  // ── CONFIG VERIFICATION GATE ───────────────────────────────
+  const configProblems = VoteAPI.verifyConfig();
+  const configClean = configProblems.length === 0;
+
+  const configBanner = document.getElementById("config-banner");
+  const liveCheckbox  = document.getElementById("live-mode");
+  const liveRow       = document.getElementById("live-toggle-row");
+
+  if (configClean) {
+    configBanner.classList.remove("warn");
+    configBanner.classList.add("ok", "visible");
+    configBanner.innerHTML = "✅ <strong>Config verified.</strong> No <code>_sentinel</code> placeholders and a real <code>gviz.sheetId</code> were detected. \"Send for real\" is unlocked below — use it deliberately, it writes real rows into the live sheet.";
+    liveCheckbox.disabled = false;
+    liveRow.classList.remove("disabled");
+  } else {
+    configBanner.classList.add("visible");
+    liveCheckbox.disabled = true;
+  }
+
+  function liveModeAllowed() {
+    return configClean && liveCheckbox.checked;
+  }
+
+  // ── HELPERS ─────────────────────────────────────────────────
+  function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function randMatch() { return randInt(1, 5); }
+  function pick(arr) { return arr[randInt(0, arr.length - 1)]; }
+  function nowStamp() {
+    return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", fractionalSecondDigits: 3 });
+  }
+
+  function appendLog(containerId, text, cls) {
+    const el = document.getElementById(containerId);
+    const empty = el.querySelector(".log-empty");
+    if (empty) empty.remove();
+    const line = document.createElement("div");
+    line.className = "log-line " + (cls || "info");
+    line.textContent = text;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function clearLog(containerId, placeholder) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = `<div class="log-empty">${placeholder}</div>`;
+  }
+
+  // ═══════════════════════ BURST SIMULATOR ═══════════════════════
+  const btnRunBurst   = document.getElementById("btn-run-burst");
+  const btnStopBurst  = document.getElementById("btn-stop-burst");
+  const btnClearBurst = document.getElementById("btn-clear-burst-log");
+  const progressFill  = document.getElementById("burst-progress");
+
+  const statFired    = document.getElementById("stat-fired");
+  const statResolved = document.getElementById("stat-resolved");
+  const statErrors   = document.getElementById("stat-errors");
+  const statElapsed  = document.getElementById("stat-elapsed");
+
+  let burstRunning = false;
+  let burstStopRequested = false;
+  let burstTimer = null;
+  let elapsedTimer = null;
+
+  btnClearBurst.addEventListener("click", () => clearLog("burst-log", "No votes fired yet."));
+
+  btnStopBurst.addEventListener("click", () => {
+    burstStopRequested = true;
+    appendLog("burst-log", `[${nowStamp()}] Stop requested — finishing in-flight vote, then halting.`, "info");
+  });
+
+  btnRunBurst.addEventListener("click", () => {
+    const total     = Math.max(1, parseInt(document.getElementById("num-votes").value, 10) || 20);
+    const minGap    = Math.max(0, parseInt(document.getElementById("min-stagger").value, 10) || 0);
+    const maxGap    = Math.max(minGap, parseInt(document.getElementById("max-stagger").value, 10) || minGap);
+    const dryRun    = !liveModeAllowed();
+
+    clearLog("burst-log", "");
+    burstRunning = true;
+    burstStopRequested = false;
+    btnRunBurst.disabled = true;
+    btnStopBurst.disabled = false;
+    progressFill.style.width = "0%";
+
+    let fired = 0, resolved = 0, errors = 0;
+    const startTime = performance.now();
+
+    statFired.textContent = `0 / ${total}`;
+    statResolved.textContent = "0";
+    statErrors.textContent = "0";
+    statElapsed.textContent = "0.0s";
+
+    appendLog("burst-log",
+      `[${nowStamp()}] Starting burst: ${total} votes, gap ${minGap}-${maxGap}ms, mode=${dryRun ? "DRY RUN (no network)" : "LIVE (real POST to Forms)"}`,
+      "info"
+    );
+
+    elapsedTimer = setInterval(() => {
+      statElapsed.textContent = ((performance.now() - startTime) / 1000).toFixed(1) + "s";
+    }, 100);
+
+    function fireOne() {
+      if (burstStopRequested || fired >= total) {
+        finish();
+        return;
+      }
+      fired++;
+      const matchNum = randMatch();
+      let cfg;
+      try {
+        cfg = VoteAPI.getMatchConfig(matchNum);
+      } catch (err) {
+        errors++;
+        statErrors.textContent = String(errors);
+        appendLog("burst-log", `[${nowStamp()}] #${fired} ERROR resolving match ${matchNum}: ${err.message}`, "err");
+        scheduleNext();
+        return;
+      }
+      const winner  = pick(cfg.winnerValues);
+      const speaker = pick(cfg.speakerValues);
+
+      statFired.textContent = `${fired} / ${total}`;
+      progressFill.style.width = `${(fired / total) * 100}%`;
+      appendLog("burst-log", `[${nowStamp()}] #${fired} → Match ${matchNum}: "${winner}" / "${speaker}"`, "fire");
+
+      VoteAPI.submitVote(matchNum, winner, speaker, { dryRun, optimisticDelayMs: 250 })
+        .then((result) => {
+          resolved++;
+          statResolved.textContent = String(resolved);
+          const tag = result.dryRun ? "dry-run payload built ok" : "optimistic resolve";
+          appendLog("burst-log", `[${nowStamp()}]   ✓ #${fired} resolved — ${tag}`, "ok");
+        })
+        .catch((err) => {
+          errors++;
+          statErrors.textContent = String(errors);
+          appendLog("burst-log", `[${nowStamp()}]   ✗ #${fired} build error: ${err.message}`, "err");
+        });
+
+      scheduleNext();
+    }
+
+    function scheduleNext() {
+      if (burstStopRequested || fired >= total) {
+        finish();
+        return;
+      }
+      burstTimer = setTimeout(fireOne, randInt(minGap, maxGap));
+    }
+
+    function finish() {
+      if (!burstRunning) return; // already finished once
+      burstRunning = false;
+      clearInterval(elapsedTimer);
+      statElapsed.textContent = ((performance.now() - startTime) / 1000).toFixed(1) + "s";
+      btnRunBurst.disabled = false;
+      btnStopBurst.disabled = true;
+      const reason = burstStopRequested ? "stopped early by user" : "complete";
+      appendLog("burst-log", `[${nowStamp()}] Burst ${reason}. Fired ${fired}/${total}, resolved ${resolved}, errors ${errors}.`, "info");
+      if (dryRun) {
+        appendLog("burst-log", `[${nowStamp()}] No network requests were sent (dry run). Verify entry IDs, then re-run with "Send for real" to test against the live Form.`, "info");
+      }
+    }
+
+    fireOne();
+  });
+
+  // ═══════════════════════ GVIZ MONITOR ═══════════════════════
+  const btnStartMonitor = document.getElementById("btn-start-monitor");
+  const btnStopMonitor  = document.getElementById("btn-stop-monitor");
+  const btnClearMonitor = document.getElementById("btn-clear-monitor-log");
+
+  const statPolls       = document.getElementById("stat-polls");
+  const statRowcount    = document.getElementById("stat-rowcount");
+  const statChanged     = document.getElementById("stat-changed");
+  const statFetchErrors = document.getElementById("stat-fetch-errors");
+
+  let monitorTimer = null;
+  let monitorEndTimer = null;
+
+  btnClearMonitor.addEventListener("click", () => clearLog("monitor-log", "Monitor idle."));
+
+  function fingerprintTable(table) {
+    // Cheap content fingerprint: row count + last row's cell values joined.
+    const rows = table.rows || [];
+    const last = rows[rows.length - 1];
+    const lastVals = last ? last.c.map(c => (c ? c.v : null)).join("|") : "";
+    return `${rows.length}::${lastVals}`;
+  }
+
+  btnStartMonitor.addEventListener("click", () => {
+    const intervalMs = Math.max(500, parseInt(document.getElementById("poll-interval").value, 10) || 3000);
+    const durationS  = Math.max(5, parseInt(document.getElementById("poll-duration").value, 10) || 60);
+
+    clearLog("monitor-log", "");
+    btnStartMonitor.disabled = true;
+    btnStopMonitor.disabled = false;
+
+    let polls = 0, fetchErrors = 0;
+    let baselineFingerprint = null;
+    let changed = false;
+
+    statPolls.textContent = "0";
+    statRowcount.textContent = "—";
+    statChanged.textContent = "no";
+    statFetchErrors.textContent = "0";
+
+    appendLog("monitor-log", `[${nowStamp()}] Monitor started: polling every ${intervalMs}ms for ${durationS}s.`, "info");
+
+    function tick() {
+      polls++;
+      statPolls.textContent = String(polls);
+      VoteAPI.fetchGvizSheet()
+        .then((table) => {
+          const fp = fingerprintTable(table);
+          const rowCount = (table.rows || []).length;
+          statRowcount.textContent = String(rowCount);
+          if (baselineFingerprint === null) {
+            baselineFingerprint = fp;
+            appendLog("monitor-log", `[${nowStamp()}] Poll #${polls}: baseline captured — ${rowCount} rows.`, "ok");
+          } else if (fp !== baselineFingerprint) {
+            if (!changed) {
+              changed = true;
+              statChanged.textContent = "yes";
+            }
+            appendLog("monitor-log", `[${nowStamp()}] Poll #${polls}: CHANGED — ${rowCount} rows (cache-buster confirmed live).`, "ok");
+            baselineFingerprint = fp;
+          } else {
+            appendLog("monitor-log", `[${nowStamp()}] Poll #${polls}: no change — ${rowCount} rows.`, "info");
+          }
+        })
+        .catch((err) => {
+          fetchErrors++;
+          statFetchErrors.textContent = String(fetchErrors);
+          appendLog("monitor-log", `[${nowStamp()}] Poll #${polls}: FETCH ERROR — ${err.message}`, "err");
+        });
+    }
+
+    tick();
+    monitorTimer = setInterval(tick, intervalMs);
+    monitorEndTimer = setTimeout(stopMonitor, durationS * 1000);
+  });
+
+  function stopMonitor() {
+    if (monitorTimer) clearInterval(monitorTimer);
+    if (monitorEndTimer) clearTimeout(monitorEndTimer);
+    monitorTimer = null;
+    monitorEndTimer = null;
+    btnStartMonitor.disabled = false;
+    btnStopMonitor.disabled = true;
+    appendLog("monitor-log", `[${nowStamp()}] Monitor stopped.`, "info");
+  }
+
+  btnStopMonitor.addEventListener("click", stopMonitor);
+
+})();
+</script>
+
+</body>
+</html>
